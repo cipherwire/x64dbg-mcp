@@ -1,0 +1,28 @@
+name: Feature Request
+description: Suggest an idea or new debugging tool for x64dbg-mcp
+title: "[FEATURE]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggesting an idea or new MCP tool capability? We appreciate your feedback!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what problem you are trying to solve.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the Solution You'd Like
+      description: What tool, parameter, or behavior would solve this problem?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context or x64dbg Bridge API
+      description: List any x64dbg Bridge SDK exports or command syntax relevant to this request.

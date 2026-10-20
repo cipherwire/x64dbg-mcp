@@ -1,0 +1,48 @@
+name: Bug Report
+description: File a bug report or regression in x64dbg-mcp
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please ensure you have tested against the latest release.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Windows build, Python version, and x64dbg build version.
+      placeholder: "Windows 11 x64, Python 3.11, x64dbg snapshot 2026-xx-xx"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions or tool calls to reproduce the issue.
+      placeholder: |
+        1. Start x64dbg with x64dbg_mcp.dp64 loaded
+        2. Run MCP tool '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Output
+      description: Attach relevant MCP server stderr/stdout or x64dbg log console output.
+      render: shell

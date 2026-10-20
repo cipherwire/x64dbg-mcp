@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "x64dbg-mcp"
+version = "1.0.0"
+description = "Model Context Protocol (MCP) server and native bridge plugin for x64dbg debugger"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=2.0.0,<3",
+    "anyio>=4.0.0",
+]
+
+[project.scripts]
+x64dbg-mcp = "mcp_server.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcp_server*"]

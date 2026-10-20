@@ -1,0 +1,57 @@
+# Bytecode and runtime caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Build and distribution directories
+build/
+bin/
+dist/
+*.egg-info/
+.eggs/
+
+# Compiler and Linker artifacts
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.idb
+
+# Log files
+*.log
+plugin_lifecycle.log
+
+# IDE and Editor configurations
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.freebuff/
+
+# Environment and Secret files
+.env
+.env.*
+!.env.example
+
+# Development, research, and scratch directories
+scratch/
+scratch_refs/
+
+# Temporary memory dumps and trace files
+*.dmp
+*.bin
+*.trace32
+*.trace64
+*.dd32
+*.dd64
+
+# Operating System artifacts
+Thumbs.db
+Desktop.ini
+ 
+docsite/
+

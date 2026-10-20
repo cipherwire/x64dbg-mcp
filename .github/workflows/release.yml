@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: Build and Publish Release Assets
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install build dependencies
+        shell: powershell
+        run: |
+          python -m pip install --upgrade pip build wheel
+
+      - name: Download x64dbg SDK
+        shell: powershell
+        run: |
+          Write-Host "Fetching latest x64dbg release information..."
+          $headers = @{ "User-Agent" = "GitHubActions-Release" }
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/x64dbg/x64dbg/releases/tags/snapshot" -Headers $headers
+          $asset = $release.assets | Where-Object { $_.name -like "snapshot_*.zip" -and $_.name -notlike "symbols-*" } | Select-Object -First 1
+          if (-not $asset) {
+            Write-Error "Failed to locate x64dbg snapshot zip in release assets."
+            exit 1
+          }
+          Write-Host "Downloading $($asset.name)..."
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "x64dbg_snapshot.zip"
+          Write-Host "Extracting x64dbg SDK..."
+          Expand-Archive -Path "x64dbg_snapshot.zip" -DestinationPath "$env:RUNNER_TEMP\x64dbg"
+          $sdkPath = "$env:RUNNER_TEMP\x64dbg\pluginsdk"
+          if (-not (Test-Path $sdkPath)) {
+            Write-Error "SDK directory not found at $sdkPath"
+            exit 1
+          }
+          echo "X64DBG_SDK_DIR=$sdkPath" >> $env:GITHUB_ENV
+          Write-Host "SDK located at $sdkPath"
+
+      - name: Compile Native Plugin (/W4 /WX)
+        shell: powershell
+        run: |
+          .\scripts\build.ps1 -SdkDir $env:X64DBG_SDK_DIR
+
+      - name: Build Python Packages
+        shell: powershell
+        run: |
+          python -m build
+          Get-ChildItem dist\
+
+      - name: Prepare Release Bundle
+        shell: powershell
+        run: |
+          $bundleDir = "$env:RUNNER_TEMP\bundle"
+          New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
+          Copy-Item -Path "bin\x64dbg_mcp.dp64" -Destination $bundleDir -Force
+          Copy-Item -Path "README.md" -Destination $bundleDir -Force
+          Copy-Item -Path "THIRD_PARTY_NOTICES.md" -Destination $bundleDir -Force
+          
+          $zipPath = "dist\x64dbg-mcp-windows-x64.zip"
+          Compress-Archive -Path "$bundleDir\*" -DestinationPath $zipPath -Force
+          Write-Host "Release bundle created: $zipPath"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/x64dbg_mcp.dp64
+            dist/x64dbg-mcp-windows-x64.zip
+            dist/*.whl
+            dist/*.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false
