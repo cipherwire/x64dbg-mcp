@@ -35,16 +35,9 @@ jobs:
       - name: Download x64dbg SDK
         shell: powershell
         run: |
-          Write-Host "Fetching latest x64dbg release information..."
-          $headers = @{ "User-Agent" = "GitHubActions-Release" }
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/x64dbg/x64dbg/releases/tags/snapshot" -Headers $headers
-          $asset = $release.assets | Where-Object { $_.name -like "snapshot_*.zip" -and $_.name -notlike "symbols-*" } | Select-Object -First 1
-          if (-not $asset) {
-            Write-Error "Failed to locate x64dbg snapshot zip in release assets."
-            exit 1
-          }
-          Write-Host "Downloading $($asset.name)..."
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "x64dbg_snapshot.zip"
+          Write-Host "Downloading x64dbg 2026 snapshot SDK..."
+          $sdkUrl = "https://github.com/x64dbg/x64dbg/releases/download/2026.05.27/snapshot_2026-05-27_12-11.zip"
+          Invoke-WebRequest -Uri $sdkUrl -OutFile "x64dbg_snapshot.zip"
           Write-Host "Extracting x64dbg SDK..."
           Expand-Archive -Path "x64dbg_snapshot.zip" -DestinationPath "$env:RUNNER_TEMP\x64dbg"
           $sdkPath = "$env:RUNNER_TEMP\x64dbg\pluginsdk"
@@ -52,7 +45,7 @@ jobs:
             Write-Error "SDK directory not found at $sdkPath"
             exit 1
           }
-          echo "X64DBG_SDK_DIR=$sdkPath" >> $env:GITHUB_ENV
+          Add-Content -Path $env:GITHUB_ENV -Value "X64DBG_SDK_DIR=$sdkPath"
           Write-Host "SDK located at $sdkPath"
 
       - name: Compile Native Plugin (/W4 /WX)

@@ -5,6 +5,8 @@
 [![MCP: 2.0](https://img.shields.io/badge/MCP-2.0-orange.svg)](https://modelcontextprotocol.io)
 [![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)](README.md)
 [![CI Status](https://github.com/cipherwire/x64dbg-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/cipherwire/x64dbg-mcp/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-online-blue.svg)](https://x64dbg-mcp.cipherwire.link)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white)](https://discord.gg/QphWRKHvH2)
 
 `x64dbg-MCP` connects AI models, autonomous agents, and automation tools to the **x64dbg** debugger using the standardized [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
 
