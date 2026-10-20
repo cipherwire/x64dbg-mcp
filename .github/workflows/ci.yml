@@ -85,19 +85,7 @@ jobs:
       - name: Verify Server Module Syntax and Tool Count
         shell: powershell
         run: |
-          python -c @'
-          import ast
-          with open('mcp_server/server.py', 'r', encoding='utf-8') as f:
-              tree = ast.parse(f.read())
-          tools = [
-              n.name for n in ast.walk(tree)
-              if isinstance(n, ast.FunctionDef)
-              and any(isinstance(d, ast.Call) and getattr(d.func, 'attr', '') == 'tool' for d in n.decorator_list)
-          ]
-          print(f"Discovered {len(tools)} tools in server.py")
-          assert len(tools) == 234, f"Expected 234 tools, found {len(tools)}"
-          print("Tool surface validation successful.")
-          '@
+          python scripts/verify_tools.py
 
       - name: Build Python Distribution Packages
         shell: powershell
