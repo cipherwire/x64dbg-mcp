@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "x64dbg-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "Model Context Protocol (MCP) server and native bridge plugin for x64dbg debugger"
 readme = "README.md"
 requires-python = ">=3.10"
