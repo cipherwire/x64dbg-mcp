@@ -108,6 +108,17 @@ static bool check_pe_x64(const char* filePath, char* errBuf, size_t errBufSize)
         sprintf_s(errBuf, errBufSize, "unsupported PE architecture (machine 0x%04X, expected AMD64 0x8664)", fileHdr.Machine);
         return false;
     }
+#else
+    if (fileHdr.Machine == IMAGE_FILE_MACHINE_AMD64)
+    {
+        sprintf_s(errBuf, errBufSize, "architecture mismatch: file is a 64-bit AMD64 binary. Use x64dbg to debug this executable.");
+        return false;
+    }
+    if (fileHdr.Machine != IMAGE_FILE_MACHINE_I386)
+    {
+        sprintf_s(errBuf, errBufSize, "unsupported PE architecture (machine 0x%04X, expected I386 0x014C)", fileHdr.Machine);
+        return false;
+    }
 #endif
     return true;
 }

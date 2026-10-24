@@ -4,6 +4,7 @@
 #pragma warning(push)
 #pragma warning(disable: 4201) // nameless struct/union
 
+#ifdef _WIN64
 #pragma pack(push, 8)
 typedef struct _PEB
 {
@@ -71,7 +72,6 @@ typedef struct _PEB
     ULONG NtGlobalFlag;
 } PEB, *PPEB;
 #pragma pack(pop)
-#pragma warning(pop)
 
 static_assert(offsetof(PEB, BeingDebugged) == 0x02, "PEB BeingDebugged offset mismatch");
 static_assert(offsetof(PEB, ImageBaseAddress) == 0x10, "PEB ImageBaseAddress offset mismatch");
@@ -81,6 +81,89 @@ static_assert(offsetof(PEB, NtGlobalFlag) == 0xBC, "PEB NtGlobalFlag offset mism
 static_assert(offsetof(NT_TIB, StackBase) == 0x08, "NT_TIB StackBase offset mismatch");
 static_assert(offsetof(NT_TIB, StackLimit) == 0x10, "NT_TIB StackLimit offset mismatch");
 static_assert(offsetof(NT_TIB, Self) == 0x30, "NT_TIB Self offset mismatch");
+
+#else // x86 32-bit PEB layout
+
+#pragma pack(push, 4)
+typedef struct _PEB
+{
+    BOOLEAN InheritedAddressSpace;
+    BOOLEAN ReadImageFileExecOptions;
+    BOOLEAN BeingDebugged;
+    union
+    {
+        BOOLEAN BitField;
+        struct
+        {
+            BOOLEAN ImageUsesLargePages : 1;
+            BOOLEAN IsProtectedProcess : 1;
+            BOOLEAN IsImageDynamicallyRelocated : 1;
+            BOOLEAN SkipPatchingUser32Forwarders : 1;
+            BOOLEAN IsPackagedProcess : 1;
+            BOOLEAN IsAppContainer : 1;
+            BOOLEAN IsProtectedProcessLight : 1;
+            BOOLEAN IsLongPathAwareProcess : 1;
+        };
+    };
+    HANDLE Mutant;
+    PVOID ImageBaseAddress;
+    PVOID Ldr;
+    PVOID ProcessParameters;
+    PVOID SubSystemData;
+    PVOID ProcessHeap;
+    PVOID FastPebLock;
+    PVOID AtlThunkSListPtr;
+    PVOID IFEOKey;
+    union
+    {
+        ULONG CrossProcessFlags;
+        struct
+        {
+            ULONG ProcessInJob : 1;
+            ULONG ProcessInitializing : 1;
+            ULONG ProcessUsingVEH : 1;
+            ULONG ProcessUsingVCH : 1;
+            ULONG ProcessUsingFTH : 1;
+            ULONG ProcessPreviouslyThrottled : 1;
+            ULONG ProcessCurrentlyThrottled : 1;
+            ULONG ProcessImagesHotPatched : 1;
+            ULONG ReservedBits0 : 24;
+        };
+    };
+    union
+    {
+        PVOID KernelCallbackTable;
+        PVOID UserSharedInfoPtr;
+    };
+    ULONG SystemReserved;
+    ULONG AtlThunkSListPtr32;
+    PVOID ApiSetMap;
+    ULONG TlsExpansionCounter;
+    PVOID TlsBitmap;
+    ULONG TlsBitmapBits[2];
+    PVOID ReadOnlySharedMemoryBase;
+    PVOID SharedData;
+    PVOID ReadOnlyStaticServerData;
+    PVOID AnsiCodePageData;
+    PVOID OemCodePageData;
+    PVOID UnicodeCaseTableData;
+    ULONG NumberOfProcessors;
+    ULONG NtGlobalFlag;
+} PEB, *PPEB;
+#pragma pack(pop)
+
+static_assert(offsetof(PEB, BeingDebugged) == 0x02, "PEB BeingDebugged offset mismatch");
+static_assert(offsetof(PEB, ImageBaseAddress) == 0x08, "PEB ImageBaseAddress offset mismatch");
+static_assert(offsetof(PEB, ProcessHeap) == 0x18, "PEB ProcessHeap offset mismatch");
+static_assert(offsetof(PEB, NtGlobalFlag) == 0x68, "PEB NtGlobalFlag offset mismatch");
+
+static_assert(offsetof(NT_TIB, StackBase) == 0x04, "NT_TIB StackBase offset mismatch");
+static_assert(offsetof(NT_TIB, StackLimit) == 0x08, "NT_TIB StackLimit offset mismatch");
+static_assert(offsetof(NT_TIB, Self) == 0x18, "NT_TIB Self offset mismatch");
+
+#endif // _WIN64
+
+#pragma warning(pop)
 
 void handle_get_peb_info(const char* readBuf, char* responseBuf, size_t responseBufSize, const char*& responseText)
 {
@@ -389,12 +472,19 @@ void handle_get_security_mitigations(const char* readBuf, char* responseBuf, siz
     bool isArm64Emulated = BridgeIsARM64Emulated();
     unsigned int ntBuild = BridgeGetNtBuildNumber();
 
+#ifdef _WIN64
+    const char* archStr = "x64";
+#else
+    const char* archStr = "x86";
+#endif
+
     sprintf_s(responseBuf, responseBufSize,
-              "{\"dep_enabled\":%s,\"process_elevated\":%s,\"arm64_emulated\":%s,\"nt_build_number\":%u,\"architecture\":\"x64\",\"success\":true}\n",
+              "{\"dep_enabled\":%s,\"process_elevated\":%s,\"arm64_emulated\":%s,\"nt_build_number\":%u,\"architecture\":\"%s\",\"success\":true}\n",
               depEnabled ? "true" : "false",
               isElevated ? "true" : "false",
               isArm64Emulated ? "true" : "false",
-              ntBuild);
+              ntBuild,
+              archStr);
     responseText = responseBuf;
 
     _plugin_logprintf("[x64dbg-MCP] get_security_mitigations: DEP=%d Elevated=%d ARM64=%d Build=%u\n",

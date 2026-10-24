@@ -48,10 +48,10 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "X64DBG_SDK_DIR=$sdkPath"
           Write-Host "SDK located at $sdkPath"
 
-      - name: Compile Native Plugin (/W4 /WX)
+      - name: Compile Native Plugins (/W4 /WX)
         shell: powershell
         run: |
-          .\scripts\build.ps1 -SdkDir $env:X64DBG_SDK_DIR
+          .\scripts\build.ps1 -Platform All -SdkDir $env:X64DBG_SDK_DIR
 
       - name: Build Python Packages
         shell: powershell
@@ -65,10 +65,11 @@ jobs:
           $bundleDir = "$env:RUNNER_TEMP\bundle"
           New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
           Copy-Item -Path "bin\x64dbg_mcp.dp64" -Destination $bundleDir -Force
+          Copy-Item -Path "bin\x32dbg_mcp.dp32" -Destination $bundleDir -Force
           Copy-Item -Path "README.md" -Destination $bundleDir -Force
           Copy-Item -Path "THIRD_PARTY_NOTICES.md" -Destination $bundleDir -Force
           
-          $zipPath = "dist\x64dbg-mcp-windows-x64.zip"
+          $zipPath = "dist\x64dbg-mcp-windows-plugins.zip"
           Compress-Archive -Path "$bundleDir\*" -DestinationPath $zipPath -Force
           Write-Host "Release bundle created: $zipPath"
 
@@ -77,7 +78,8 @@ jobs:
         with:
           files: |
             bin/x64dbg_mcp.dp64
-            dist/x64dbg-mcp-windows-x64.zip
+            bin/x32dbg_mcp.dp32
+            dist/x64dbg-mcp-windows-plugins.zip
             dist/*.whl
             dist/*.tar.gz
           generate_release_notes: true

@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import json
@@ -24,7 +25,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("x64dbg-mcp")
 
-PIPE_NAME = r"\\.\pipe\x64dbg_mcp"
+DEFAULT_PIPE_NAMES = [r"\\.\pipe\x64dbg_mcp", r"\\.\pipe\x32dbg_mcp"]
+
+def get_candidate_pipes() -> list[str]:
+    custom = os.environ.get("X64DBG_PIPE_NAME")
+    if custom:
+        return [custom]
+    return DEFAULT_PIPE_NAMES
 
 # Win32 constants
 GENERIC_READ = 0x80000000
@@ -64,18 +71,22 @@ CloseHandle.restype = wintypes.BOOL
 def query_debugger_pipe(command: str, params: dict | None = None, timeout_sec: float = 2.0) -> dict:
     start_time = time.time()
     h_pipe = INVALID_HANDLE_VALUE
+    pipes = get_candidate_pipes()
 
-    # Connect to named pipe with bounded timeout
+    # Connect to named pipe with bounded timeout across candidates
     while time.time() - start_time < timeout_sec:
-        h_pipe = CreateFileW(
-            PIPE_NAME,
-            GENERIC_READ | GENERIC_WRITE,
-            0,
-            None,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            None
-        )
+        for p_name in pipes:
+            h_pipe = CreateFileW(
+                p_name,
+                GENERIC_READ | GENERIC_WRITE,
+                0,
+                None,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                None
+            )
+            if h_pipe != INVALID_HANDLE_VALUE:
+                break
         if h_pipe != INVALID_HANDLE_VALUE:
             break
         err = ctypes.get_last_error()
@@ -84,11 +95,11 @@ def query_debugger_pipe(command: str, params: dict | None = None, timeout_sec: f
             continue
         else:
             logger.error(f"Failed to open pipe, Win32 error: 0x{err:08X}")
-            raise ToolError(f"Failed to open x64dbg pipe (error 0x{err:08X})")
+            raise ToolError(f"Failed to open x64dbg/x32dbg pipe (error 0x{err:08X})")
 
     if h_pipe == INVALID_HANDLE_VALUE:
-        logger.warning("Pipe connection timed out; x64dbg or plugin is not running.")
-        raise ToolError("x64dbg is not running or the x64dbg-MCP plugin is not loaded.")
+        logger.warning("Pipe connection timed out; x64dbg/x32dbg or plugin is not running.")
+        raise ToolError("x64dbg/x32dbg is not running or the MCP plugin is not loaded.")
 
     try:
         # Build request payload

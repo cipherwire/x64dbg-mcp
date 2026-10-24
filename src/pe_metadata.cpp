@@ -2,6 +2,18 @@
 #include <vector>
 #include <algorithm>
 
+#ifndef _WIN64
+// Fallback definition for 32-bit builds; x64 PE exception directory structures
+typedef struct _RUNTIME_FUNCTION {
+    DWORD BeginAddress;
+    DWORD EndAddress;
+    union {
+        DWORD UnwindInfoAddress;
+        DWORD UnwindData;
+    };
+} RUNTIME_FUNCTION, *PRUNTIME_FUNCTION;
+#endif
+
 // --------------------------------------------------------------------------
 // PE Header Parsing Helper
 // --------------------------------------------------------------------------
@@ -18,7 +30,7 @@ struct PeHeaderInfo
     WORD optMagic;
     duint entryPointRva;
     duint entryPointVa;
-    duint imageBase;
+    ULONGLONG imageBase;
     DWORD sizeOfImage;
     DWORD sizeOfHeaders;
     DWORD sectionAlignment;

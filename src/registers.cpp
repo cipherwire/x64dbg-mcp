@@ -27,6 +27,7 @@ void handle_get_registers(const char* readBuf, char* responseBuf, size_t respons
         }
         else
         {
+#ifdef _WIN64
             _plugin_logprintf("[x64dbg-MCP] Registers read: RIP=0x%llX, RAX=0x%llX, RSP=0x%llX\n",
                               (unsigned long long)regDump.regcontext.cip,
                               (unsigned long long)regDump.regcontext.cax,
@@ -57,6 +58,28 @@ void handle_get_registers(const char* readBuf, char* responseBuf, size_t respons
                 (unsigned long long)regDump.regcontext.r14,
                 (unsigned long long)regDump.regcontext.r15,
                 (unsigned int)regDump.regcontext.eflags);
+#else
+            _plugin_logprintf("[x64dbg-MCP] Registers read: EIP=0x%08X, EAX=0x%08X, ESP=0x%08X\n",
+                              (unsigned int)regDump.regcontext.cip,
+                              (unsigned int)regDump.regcontext.cax,
+                              (unsigned int)regDump.regcontext.csp);
+
+            sprintf_s(responseBuf, responseBufSize,
+                "{\"eax\":\"0x%08X\",\"ebx\":\"0x%08X\",\"ecx\":\"0x%08X\","
+                "\"edx\":\"0x%08X\",\"esp\":\"0x%08X\",\"ebp\":\"0x%08X\","
+                "\"esi\":\"0x%08X\",\"edi\":\"0x%08X\",\"eip\":\"0x%08X\","
+                "\"eflags\":\"0x%08X\"}\n",
+                (unsigned int)regDump.regcontext.cax,
+                (unsigned int)regDump.regcontext.cbx,
+                (unsigned int)regDump.regcontext.ccx,
+                (unsigned int)regDump.regcontext.cdx,
+                (unsigned int)regDump.regcontext.csp,
+                (unsigned int)regDump.regcontext.cbp,
+                (unsigned int)regDump.regcontext.csi,
+                (unsigned int)regDump.regcontext.cdi,
+                (unsigned int)regDump.regcontext.cip,
+                (unsigned int)regDump.regcontext.eflags);
+#endif
             responseText = responseBuf;
         }
     }
@@ -91,6 +114,7 @@ void handle_set_register(const char* readBuf, char* responseBuf, size_t response
             std::transform(regLower.begin(), regLower.end(), regLower.begin(), [](unsigned char c) { return (char)tolower(c); });
 
             // Validate register name against supported registers
+#ifdef _WIN64
             static const char* const validRegs[] = {
                 "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "rip",
                 "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -98,6 +122,14 @@ void handle_set_register(const char* readBuf, char* responseBuf, size_t response
                 "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
                 "eflags"
             };
+#else
+            static const char* const validRegs[] = {
+                "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip",
+                "ax", "bx", "cx", "dx", "si", "di", "bp", "sp",
+                "al", "ah", "bl", "bh", "cl", "ch", "dl", "dh",
+                "eflags"
+            };
+#endif
 
             bool isValid = false;
             for (const auto& vr : validRegs)
@@ -179,10 +211,17 @@ void handle_test_raw_regdump(const char* readBuf, char* responseBuf, size_t resp
     // Experimental check of raw DbgGetRegDumpEx return behavior without state guard
     REGDUMP_AVX512 rawDump = { 0 };
     bool rawOk = DbgGetRegDumpEx(&rawDump, sizeof(rawDump));
+#ifdef _WIN64
     sprintf_s(responseBuf, responseBufSize,
               "{\"raw_return\":%s,\"rip\":\"0x%016llX\"}\n",
               rawOk ? "true" : "false",
               (unsigned long long)rawDump.regcontext.cip);
+#else
+    sprintf_s(responseBuf, responseBufSize,
+              "{\"raw_return\":%s,\"eip\":\"0x%08X\"}\n",
+              rawOk ? "true" : "false",
+              (unsigned int)rawDump.regcontext.cip);
+#endif
     responseText = responseBuf;
 }
 

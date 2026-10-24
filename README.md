@@ -12,17 +12,18 @@
 
 It provides **234 verified debugging and reverse engineering tools** spanning live execution control, registers, memory inspection and modification, disassembly, symbol resolution, hardware and software breakpoints, thread scheduling, structured type decoding, call stacks, live execution tracing, offline trace file parsing, console input and output capture, and PE binary inspection.
 
-The native plugin and Python server are target-agnostic and work reliably with arbitrary 64-bit Windows executables, modules, and threads supported by x64dbg.
+The native plugin and Python server are target-agnostic and work reliably with arbitrary 64-bit and 32-bit Windows executables, modules, and threads supported by x64dbg and x32dbg.
 
 ---
 
 ## Key Features
 
-* **234 Verified MCP Tools**: Comprehensive coverage of the x64dbg Bridge SDK and debugging engine.
-* **Dual-Layer Architecture**: High-speed native C++ plugin (`.dp64`) communicating via Win32 named pipes (`\\.\pipe\x64dbg_mcp`) with an official FastMCP Python server.
+* **234 Verified MCP Tools**: Comprehensive coverage of the x64dbg/x32dbg Bridge SDK and debugging engine.
+* **Dual-Architecture Support**: Full production-grade support for both 64-bit (`x64dbg_mcp.dp64`) and 32-bit (`x32dbg_mcp.dp32`) debuggers.
+* **Dual-Layer Architecture**: High-speed native C++ plugins communicating via Win32 named pipes (`\\.\pipe\x64dbg_mcp` and `\\.\pipe\x32dbg_mcp`) with an official FastMCP Python server that auto-detects the active debugger.
 * **Bi-directional Console I/O**: Direct keyboard input simulation (`send_console_input`) and screen buffer capture (`read_console_output`) for interactive console targets without disrupting runtime buffering.
 * **Offline Trace Inspector**: Dedicated binary parser (`trace_reader.py`) for `.trace32` and `.trace64` files, supporting instruction search, register lookups, and timeline navigation without requiring x64dbg to be running.
-* **Strict Code Quality**: Native plugin compiles under MSVC with `/W4 /WX` (strict warnings treated as errors, 0 warnings).
+* **Strict Code Quality**: Native plugin compiles under MSVC with `/W4 /WX` (strict warnings treated as errors, 0 warnings across both x64 and x86).
 * **Automated CI/CD**: End-to-end regression testing and automated GitHub Releases for pre-built binaries.
 
 ---
@@ -87,13 +88,20 @@ The native plugin and Python server are target-agnostic and work reliably with a
 For users who want to run the server immediately without compiling C++:
 
 ### 1. Download Plugin Binary
-Download `x64dbg_mcp.dp64` from the latest [GitHub Release](https://github.com/cipherwire/x64dbg-mcp/releases).
+Download the pre-compiled native plugins from the latest [GitHub Release](https://github.com/cipherwire/x64dbg-mcp/releases):
+* `x64dbg_mcp.dp64` for 64-bit (`x64dbg`)
+* `x32dbg_mcp.dp32` for 32-bit (`x32dbg`)
 
-### 2. Copy Plugin to x64dbg
-Place `x64dbg_mcp.dp64` into your x64dbg plugins folder:
-```text
-<x64dbg_installation_path>\release\x64\plugins\x64dbg_mcp.dp64
-```
+### 2. Copy Plugin to x64dbg / x32dbg
+Place the plugin file into your respective debugger plugins folder:
+* For 64-bit:
+  ```text
+  <x64dbg_installation_path>\release\x64\plugins\x64dbg_mcp.dp64
+  ```
+* For 32-bit:
+  ```text
+  <x64dbg_installation_path>\release\x32\plugins\x32dbg_mcp.dp32
+  ```
 
 ### 3. Install Python Package
 ```powershell
@@ -106,12 +114,20 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### 4. Start x64dbg
-Launch `x64dbg.exe` (64-bit). In the x64dbg Log tab, verify the startup message:
-```text
-[x64dbg-MCP] Plugin loaded successfully.
-[x64dbg-MCP] Named pipe server listening on \\.\pipe\x64dbg_mcp
-```
+### 4. Start Debugger
+Launch either `x64dbg.exe` (64-bit) or `x32dbg.exe` (32-bit). In the debugger Log tab, verify the startup message:
+* In x64dbg:
+  ```text
+  [x64dbg-MCP] Plugin loaded successfully.
+  [x64dbg-MCP] Named pipe server listening on \\.\pipe\x64dbg_mcp
+  ```
+* In x32dbg:
+  ```text
+  [x64dbg-MCP] Plugin loaded successfully.
+  [x64dbg-MCP] Named pipe server listening on \\.\pipe\x32dbg_mcp
+  ```
+
+The Python MCP server automatically discovers and connects to whichever debugger is active. You can also override the pipe using the `X64DBG_PIPE_NAME` environment variable.
 
 Now connect your favorite AI client using the configuration below!
 
@@ -121,27 +137,31 @@ Now connect your favorite AI client using the configuration below!
 
 ### Prerequisites
 * **Operating System**: Windows 10, Windows 11, or Windows Server (64-bit).
-* **Compiler**: Microsoft Visual Studio 2019, 2022, or 2026 with the "Desktop development with C++" workload installed (`vcvars64.bat`).
+* **Compiler**: Microsoft Visual Studio 2019, 2022, or 2026 with the "Desktop development with C++" workload installed (`vcvars64.bat` / `vcvars32.bat`).
 * **Python**: Python 3.10 or newer.
-* **x64dbg SDK**: An x64dbg installation or snapshot containing `release\x64\x64dbg.exe` and `pluginsdk\`.
+* **x64dbg SDK**: An x64dbg installation or snapshot containing `release\x64\x64dbg.exe`, `release\x32\x32dbg.exe`, and `pluginsdk\`.
 
 ### Build & Deploy Command
-Set your x64dbg directory and compile with strict `/W4 /WX` flags:
+Set your x64dbg directory and compile both architectures with strict `/W4 /WX` flags:
 
 ```powershell
 # Optional: Set environment variable
 $env:X64DBG_DIR = "C:\path\to\x64dbg"
 
-# Compile and automatically deploy x64dbg_mcp.dp64 into x64dbg plugins folder:
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Deploy
+# Compile and automatically deploy both x64 and x86 plugins:
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Platform All -Deploy
 ```
 
-You can also specify explicit paths:
+You can also build a single architecture:
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SdkDir "C:\path\to\pluginsdk" -TargetDir "C:\path\to\release\x64\plugins" -Deploy
+# Build x64 only:
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Platform x64 -Deploy
+
+# Build x86 (32-bit) only:
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Platform x86 -Deploy
 ```
 
-The output binary is produced at `bin/x64dbg_mcp.dp64`.
+The output binaries are produced at `bin/x64dbg_mcp.dp64` and `bin/x32dbg_mcp.dp32`.
 
 ---
 

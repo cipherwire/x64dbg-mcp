@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-plugin:
-    name: Build Native Plugin (MSVC x64)
+    name: Build Native Plugins (MSVC x64 & x86)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -35,27 +35,36 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "X64DBG_SDK_DIR=$sdkPath"
           Write-Host "SDK located at $sdkPath"
 
-      - name: Compile Plugin with MSVC (/W4 /WX)
+      - name: Compile Plugins with MSVC (/W4 /WX)
         shell: powershell
         run: |
-          .\scripts\build.ps1 -SdkDir $env:X64DBG_SDK_DIR
+          .\scripts\build.ps1 -Platform All -SdkDir $env:X64DBG_SDK_DIR
 
-      - name: Verify Plugin Binary
+      - name: Verify Plugin Binaries
         shell: powershell
         run: |
-          $plugin = "bin\x64dbg_mcp.dp64"
-          if (-not (Test-Path $plugin)) {
-            Write-Error "Expected plugin binary was not produced: $plugin"
-            exit 1
+          $plugins = @("bin\x64dbg_mcp.dp64", "bin\x32dbg_mcp.dp32")
+          foreach ($p in $plugins) {
+            if (-not (Test-Path $p)) {
+              Write-Error "Expected plugin binary was not produced: $p"
+              exit 1
+            }
+            $item = Get-Item $p
+            Write-Host "Build verification passed: $p ($($item.Length) bytes)"
           }
-          $item = Get-Item $plugin
-          Write-Host "Build verification passed: $plugin ($($item.Length) bytes)"
 
-      - name: Upload Native Plugin Artifact
+      - name: Upload x64 Native Plugin Artifact
         uses: actions/upload-artifact@v4
         with:
           name: x64dbg_mcp.dp64
           path: bin/x64dbg_mcp.dp64
+          if-no-files-found: error
+
+      - name: Upload x86 Native Plugin Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: x32dbg_mcp.dp32
+          path: bin/x32dbg_mcp.dp32
           if-no-files-found: error
 
   test-python:

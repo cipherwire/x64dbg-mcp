@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning(disable: 4324)
+
 #include <windows.h>
 #include <process.h>
 #include <stdio.h>
@@ -19,7 +21,11 @@
 #include <memory>
 
 // Named pipe configuration
+#ifdef _WIN64
 static const wchar_t* const PIPE_NAME = L"\\\\.\\pipe\\x64dbg_mcp";
+#else
+static const wchar_t* const PIPE_NAME = L"\\\\.\\pipe\\x32dbg_mcp";
+#endif
 
 // Execution control event tracking
 enum StopReason

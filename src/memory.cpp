@@ -779,7 +779,11 @@ void handle_test_raw_memread(const char* readBuf, char* responseBuf, size_t resp
     (void)readBuf;
     // Experimental check of raw DbgMemRead return behavior without state guard
     unsigned char dummy[16] = { 0 };
+#ifdef _WIN64
     bool rawOk = DbgMemRead(0x140000000, dummy, sizeof(dummy));
+#else
+    bool rawOk = DbgMemRead(0x00400000, dummy, sizeof(dummy));
+#endif
     sprintf_s(responseBuf, responseBufSize,
               "{\"raw_return\":%s}\n", rawOk ? "true" : "false");
     responseText = responseBuf;
